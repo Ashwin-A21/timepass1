@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Curvature 360° - Ultra Immersive</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --accent: #6366f1; }
+        body {
+            margin: 0;
+            background-color: #020205;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: white;
+            overflow-x: hidden;
+        }
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #020205; }
+        ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.3); border-radius: 10px; }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 2.5rem;
+            transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .glass-card:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+
+        section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 0 10%;
+            position: relative;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .interactive { pointer-events: auto; }
+
+        .cursor-glow {
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.05) 0%, rgba(0,0,0,0) 70%);
+            position: fixed;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            z-index: 1;
+        }
+
+        .nav-link {
+            position: relative;
+            overflow: hidden;
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: var(--accent);
+            transform: translateX(-101%);
+            transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .nav-link:hover::after { transform: translateX(0); }
+        
+        #active-item-ui {
+            position: fixed;
+            top: 50%;
+            right: 5%;
+            transform: translateY(-50%);
+            z-index: 20;
+            text-align: right;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="cursor-glow" id="glow"></div>
+    <div id="canvas-container"></div>
+
+    <!-- Active Item Label -->
+    <div id="active-item-ui">
+        <span class="text-indigo-400 font-bold tracking-[0.5em] text-[10px] uppercase block mb-2">Currently Viewing</span>
+        <h2 id="focused-title" class="text-5xl font-extrabold tracking-tighter">GALLERY NODE</h2>
+    </div>
+
+    <!-- Header -->
+    <nav class="fixed top-0 w-full z-50 flex justify-between items-center px-10 py-10 interactive">
+        <div class="text-2xl font-extrabold tracking-tighter mix-blend-difference">CURVATURE<span class="text-indigo-500">360</span></div>
+        <div class="hidden md:flex gap-12 text-[11px] font-bold tracking-[0.3em] uppercase">
+            <a href="#hero" class="nav-link transition-opacity hover:opacity-70">Concept</a>
+            <a href="#gallery" class="nav-link transition-opacity hover:opacity-70">Architecture</a>
+            <a href="#process" class="nav-link transition-opacity hover:opacity-70">Innovation</a>
+            <a href="#contact" class="nav-link transition-opacity hover:opacity-70">Join</a>
+        </div>
+        <div class="flex items-center gap-6">
+            <div class="hidden lg:block h-[1px] w-12 bg-white/20"></div>
+            <button class="px-6 py-2 border border-white/20 rounded-full text-[10px] font-bold tracking-widest hover:bg-white hover:text-black transition-all">CONNECT</button>
+        </div>
+    </nav>
+
+    <!-- Scroll & Interaction Guide -->
+    <div class="fixed bottom-12 left-10 z-50 text-[10px] font-bold tracking-[0.2em] text-gray-500 uppercase flex flex-col gap-3">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-[1px] bg-indigo-500"></div>
+            <span>Scroll: Orbit Universe</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-[1px] bg-white/20"></div>
+            <span>Click: Focus Node</span>
+        </div>
+    </div>
+
+    <!-- Section 1: Hero -->
+    <section id="hero">
+        <div class="max-w-3xl reveal">
+            <h2 class="text-indigo-500 font-bold tracking-[0.5em] uppercase text-[10px] mb-6">Exhibition.v4</h2>
+            <h1 class="text-8xl md:text-9xl font-extrabold tracking-tighter leading-[0.85] mb-10">
+                Beyond <br/><span class="text-transparent" style="-webkit-text-stroke: 1.5px white;">The Arc.</span>
+            </h1>
+            <p class="text-gray-400 text-xl mb-12 max-w-lg leading-relaxed font-light">
+                A 360-degree digital rotunda engineered for maximum immersion. Experience content through the lens of concave geometry.
+            </p>
+            <div class="flex gap-8 interactive">
+                <button class="px-12 py-5 bg-indigo-600 text-white font-bold rounded-full hover:bg-indigo-500 hover:scale-105 transition-all shadow-2xl shadow-indigo-500/20">Enter Matrix</button>
+                <button class="px-12 py-5 glass-card font-bold rounded-full hover:bg-white/10 transition-all">Documentation</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 2: Features -->
+    <section id="gallery">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center w-full">
+            <div class="glass-card p-16 reveal interactive">
+                <div class="w-12 h-1 w-full bg-indigo-500 mb-8"></div>
+                <h3 class="text-4xl font-bold mb-8 tracking-tighter">Optical Precision</h3>
+                <p class="text-gray-400 mb-10 leading-relaxed text-lg">
+                    Each node is an independent glass panel, bent mathematically to concentrate visual data toward the center. This 360° array provides a seamless flow of information with zero distortion.
+                </p>
+                <div class="grid grid-cols-2 gap-10">
+                    <div>
+                        <div class="text-2xl font-bold text-white mb-2">16.0k</div>
+                        <div class="text-[10px] text-gray-500 tracking-widest uppercase">Poly Precision</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold text-white mb-2">0.02ms</div>
+                        <div class="text-[10px] text-gray-500 tracking-widest uppercase">Refraction Latency</div>
+                    </div>
+                </div>
+            </div>
+            <div class="reveal delay-200">
+                <h4 class="text-6xl font-extrabold tracking-tighter mb-8 leading-none">The <br/>Digital <br/>Sanctuary.</h4>
+                <p class="text-gray-400 max-w-sm italic border-l-2 border-indigo-500 pl-6">"Where the interface disappears, and the experience begins."</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 3: Tech Grid -->
+    <section id="process">
+        <div class="w-full">
+            <div class="reveal mb-24">
+                <h2 class="text-7xl font-extrabold tracking-tighter">System <br/>Integrity.</h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 interactive">
+                <div class="glass-card p-10 reveal delay-100 group">
+                    <div class="text-indigo-500 mb-8 text-5xl font-extrabold opacity-50 group-hover:opacity-100 transition-opacity">01</div>
+                    <h4 class="text-2xl font-bold mb-6">Concave Mesh</h4>
+                    <p class="text-gray-500 leading-relaxed">Vertex-transformed geometry that follows the natural curvature of the human eye's focus range.</p>
+                </div>
+                <div class="glass-card p-10 reveal delay-200 group">
+                    <div class="text-indigo-500 mb-8 text-5xl font-extrabold opacity-50 group-hover:opacity-100 transition-opacity">02</div>
+                    <h4 class="text-2xl font-bold mb-6">Light Bleed</h4>
+                    <p class="text-gray-500 leading-relaxed">Emissive edge-detection shaders that create a volumetric glow between interactive nodes.</p>
+                </div>
+                <div class="glass-card p-10 reveal delay-300 group">
+                    <div class="text-indigo-500 mb-8 text-5xl font-extrabold opacity-50 group-hover:opacity-100 transition-opacity">03</div>
+                    <h4 class="text-2xl font-bold mb-6">Mirror Core</h4>
+                    <p class="text-gray-500 leading-relaxed">A physics-based reflective floor that grounds the entire 360-degree environment in reality.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 4: Contact -->
+    <section id="contact" class="justify-center text-center">
+        <div class="glass-card px-20 py-24 reveal interactive max-w-4xl">
+            <h2 class="text-6xl font-extrabold mb-10 tracking-tighter">Elevate Your <br/>Perspective.</h2>
+            <p class="text-gray-400 mb-12 max-w-md mx-auto text-lg leading-relaxed">Request private access to our advanced visualization tools or book a spatial demo.</p>
+            <div class="flex flex-col md:flex-row gap-6 justify-center">
+                <input type="text" placeholder="Your Digital Identity" class="bg-white/5 border border-white/10 rounded-full px-10 py-5 text-sm focus:outline-none focus:border-indigo-500 transition-all w-full md:w-80 backdrop-blur-md">
+                <button class="bg-white text-black hover:bg-indigo-500 hover:text-white px-12 py-5 rounded-full font-extrabold transition-all">Submit</button>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // --- THREE.JS CORE ---
+        const textureLoader = new THREE.TextureLoader();
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        let scene, camera, renderer, galleryGroup, stars, floor;
+        let isDragging = false;
+        let previousMouseX = 0;
+        let targetRotationY = 0;
+        let currentRotationY = 0;
+        let focusedItem = null;
+
+        const GALLERY_RADIUS = 20;
+        const ITEM_COUNT = 18;
+        
+        const IMAGES = [
+            'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?auto=format&fit=crop&q=80&w=800',
+            'https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?auto=format&fit=crop&q=80&w=800',
+            'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=800',
+            'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?auto=format&fit=crop&q=80&w=800',
+            'https://images.unsplash.com/photo-1618556450991-2f1af64e8191?auto=format&fit=crop&q=80&w=800',
+            'https://images.unsplash.com/photo-1633167606207-d840b5070fc2?auto=format&fit=crop&q=80&w=800',
+            'https://images.unsplash.com/photo-1614850523459-c2f4c699c52e?auto=format&fit=crop&q=80&w=800',
+            'https://images.unsplash.com/photo-1627163439134-7a8c47e08238?auto=format&fit=crop&q=80&w=800'
+        ];
+
+        const TITLES = ["NEURON", "PRISM", "VOID", "FLUX", "SYNAPSE", "ORBIT", "VECTOR", "GHOST"];
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0x020205, 10, 50);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.toneMapping = THREE.ReinhardToneMapping;
+            renderer.toneMappingExposure = 1.2;
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            // Lighting
+            const ambient = new THREE.AmbientLight(0xffffff, 0.2);
+            scene.add(ambient);
+
+            const centerLight = new THREE.PointLight(0x6366f1, 3, 40);
+            centerLight.position.set(0, 5, 0);
+            scene.add(centerLight);
+
+            galleryGroup = new THREE.Group();
+            scene.add(galleryGroup);
+
+            createGalleryItems();
+            createEnvironment();
+            createReflectiveFloor();
+
+            // Intersection Observer for Reveal Animations
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) entry.target.classList.add('active');
+                });
+            }, { threshold: 0.1 });
+            document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+            // Events
+            window.addEventListener('scroll', () => {
+                if (!focusedItem) {
+                    targetRotationY = window.scrollY * 0.0015;
+                }
+            });
+
+            window.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                previousMouseX = e.clientX;
+            });
+            window.addEventListener('mouseup', handleInteractionEnd);
+            window.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('resize', onWindowResize);
+
+            animate();
+        }
+
+        function createGalleryItems() {
+            // REDUCED WIDTH FROM 8 TO 5.5 TO CREATE GAP
+            const geometry = new THREE.PlaneGeometry(5.5, 11, 128, 128);
+            const positions = geometry.attributes.position;
+            for (let i = 0; i < positions.count; i++) {
+                const x = positions.getX(i);
+                const z = (x * x) * 0.15; // Slightly increased bend for narrower width
+                positions.setZ(i, z);
+            }
+            geometry.computeVertexNormals();
+
+            for (let i = 0; i < ITEM_COUNT; i++) {
+                const angle = (i / ITEM_COUNT) * Math.PI * 2;
+                const texture = textureLoader.load(IMAGES[i % IMAGES.length]);
+                
+                const material = new THREE.MeshPhysicalMaterial({
+                    map: texture,
+                    transmission: 0.15,
+                    thickness: 2,
+                    roughness: 0.05,
+                    metalness: 0.1,
+                    side: THREE.DoubleSide,
+                    emissive: new THREE.Color(0x6366f1),
+                    emissiveIntensity: 0.1
+                });
+
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.position.x = Math.sin(angle) * GALLERY_RADIUS;
+                mesh.position.z = Math.cos(angle) * GALLERY_RADIUS;
+                mesh.lookAt(0, 0, 0);
+                
+                mesh.userData = { 
+                    index: i, 
+                    angle: angle,
+                    title: TITLES[i % TITLES.length] + " " + (i + 1).toString().padStart(2, '0')
+                };
+
+                galleryGroup.add(mesh);
+
+                // Emissive rim
+                const edges = new THREE.EdgesGeometry(geometry);
+                const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ 
+                    color: 0x6366f1, 
+                    transparent: true, 
+                    opacity: 0.4 
+                }));
+                mesh.add(line);
+            }
+        }
+
+        function createReflectiveFloor() {
+            const floorGeo = new THREE.PlaneGeometry(100, 100);
+            const floorMat = new THREE.MeshStandardMaterial({ 
+                color: 0x020205, 
+                roughness: 0.1, 
+                metalness: 0.8,
+                transparent: true,
+                opacity: 0.9
+            });
+            floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = -8;
+            scene.add(floor);
+
+            // Add a grid helper for perspective
+            const grid = new THREE.GridHelper(100, 40, 0x6366f1, 0x111111);
+            grid.position.y = -7.95;
+            scene.add(grid);
+        }
+
+        function createEnvironment() {
+            const geo = new THREE.BufferGeometry();
+            const count = 3000;
+            const pos = new Float32Array(count * 3);
+            for(let i=0; i<count*3; i++) pos[i] = (Math.random() - 0.5) * 120;
+            geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            const mat = new THREE.PointsMaterial({ size: 0.06, color: 0x6366f1, transparent: true, opacity: 0.4 });
+            stars = new THREE.Points(geo, mat);
+            scene.add(stars);
+        }
+
+        function handleInteractionEnd(event) {
+            isDragging = false;
+            
+            // Raycasting for clicks
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(galleryGroup.children);
+
+            if (intersects.length > 0) {
+                const obj = intersects[0].object;
+                focusNode(obj);
+            }
+        }
+
+        function focusNode(node) {
+            focusedItem = node;
+            targetRotationY = -node.userData.angle + Math.PI; // Adjust to face camera
+            
+            // UI Update
+            const ui = document.getElementById('active-item-ui');
+            const title = document.getElementById('focused-title');
+            ui.style.opacity = 0;
+            setTimeout(() => {
+                title.innerText = node.userData.title;
+                ui.style.opacity = 1;
+            }, 300);
+        }
+
+        function onMouseMove(event) {
+            const glow = document.getElementById('glow');
+            glow.style.left = event.clientX + 'px';
+            glow.style.top = event.clientY + 'px';
+
+            if (isDragging) {
+                const deltaX = event.clientX - previousMouseX;
+                targetRotationY += deltaX * 0.005;
+                focusedItem = null; // Dragging breaks focus
+                document.getElementById('active-item-ui').style.opacity = 0;
+            }
+            previousMouseX = event.clientX;
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            currentRotationY += (targetRotationY - currentRotationY) * 0.05;
+            galleryGroup.rotation.y = currentRotationY;
+
+            // Subtle vertical floating
+            galleryGroup.position.y = Math.sin(Date.now() * 0.0008) * 0.3;
+            
+            // Items hover-like floating
+            galleryGroup.children.forEach((child, i) => {
+                const scale = (focusedItem === child) ? 1.1 : 1.0;
+                child.scale.lerp(new THREE.Vector3(scale, scale, scale), 0.1);
+                
+                // Emissive pulse
+                const pulse = 0.1 + Math.sin(Date.now() * 0.002 + i) * 0.05;
+                child.material.emissiveIntensity = focusedItem === child ? 0.3 : pulse;
+            });
+
+            stars.rotation.y += 0.0002;
+            renderer.render(scene, camera);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
