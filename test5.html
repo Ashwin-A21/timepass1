@@ -1,0 +1,405 @@
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { 
+  ArrowUpRight, 
+  Menu, 
+  X, 
+  Instagram, 
+  ArrowDown, 
+  Globe,
+  Plus,
+  ArrowRight,
+  ExternalLink
+} from 'lucide-react';
+
+const App = () => {
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [cursorType, setCursorType] = useState('default');
+  const [scrollY, setScrollY] = useState(0);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [activeProject, setActiveProject] = useState(0);
+  
+  // Magnetic Effect State
+  const [magneticPos, setMagneticPos] = useState({ x: 0, y: 0 });
+  const magneticRef = useRef(null);
+
+  // Custom Cursor Movement
+  useEffect(() => {
+    const moveCursor = (e) => {
+      setMousePos({ x: e.clientX, y: e.clientY });
+      
+      // Magnetic Logic
+      if (magneticRef.current) {
+        const { left, top, width, height } = magneticRef.current.getBoundingClientRect();
+        const centerX = left + width / 2;
+        const centerY = top + height / 2;
+        const dist = Math.hypot(e.clientX - centerX, e.clientY - centerY);
+        
+        if (dist < 100) {
+          setMagneticPos({ 
+            x: (e.clientX - centerX) * 0.4, 
+            y: (e.clientY - centerY) * 0.4 
+          });
+        } else {
+          setMagneticPos({ x: 0, y: 0 });
+        }
+      }
+    };
+
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+
+    window.addEventListener('mousemove', moveCursor);
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('mousemove', moveCursor);
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  // Section Reveal Intersection Observer
+  const [revealed, setRevealed] = useState({});
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setRevealed((prev) => ({ ...prev, [entry.target.id]: true }));
+          }
+        });
+      },
+      { threshold: 0.15 }
+    );
+    document.querySelectorAll('.reveal-section').forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
+  // Calculate Scroll Progress
+  const scrollProgress = useMemo(() => {
+    if (typeof window === 'undefined') return 0;
+    const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+    return (scrollY / totalHeight) * 100;
+  }, [scrollY]);
+
+  return (
+    <div className="bg-[#0c0c0c] text-[#f4f1ea] font-serif selection:bg-[#ff3c00] selection:text-white overflow-x-hidden transition-colors duration-1000">
+      
+      {/* Scroll Progress Bar */}
+      <div className="fixed top-0 left-0 h-[2px] bg-[#ff3c00] z-[10001] transition-all duration-100 ease-out" style={{ width: `${scrollProgress}%` }} />
+
+      {/* Visual Grain Overlay */}
+      <div className="fixed inset-0 pointer-events-none z-[9999] opacity-[0.04] mix-blend-overlay">
+        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+          <filter id="noiseFilter">
+            <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" />
+          </filter>
+          <rect width="100%" height="100%" filter="url(#noiseFilter)" />
+        </svg>
+      </div>
+
+      {/* Awwwards Custom Cursor */}
+      <div 
+        className={`fixed pointer-events-none z-[10000] rounded-full transition-all duration-300 ease-out flex items-center justify-center mix-blend-difference bg-white ${
+          cursorType !== 'default' ? 'scale-[5]' : 'scale-1'
+        }`}
+        style={{
+          left: `${mousePos.x}px`,
+          top: `${mousePos.y}px`,
+          width: '10px',
+          height: '10px',
+          transform: `translate(-50%, -50%)`,
+          boxShadow: cursorType === 'hover' ? '0 0 20px rgba(255,255,255,0.2)' : 'none'
+        }}
+      >
+        {cursorType === 'hover' && <Plus size={4} className="text-black animate-spin-slow" />}
+        {cursorType === 'view' && <span className="text-[2px] font-bold text-black tracking-tighter uppercase">VIEW</span>}
+      </div>
+
+      {/* Header */}
+      <nav className="fixed top-0 w-full z-[100] px-8 py-8 flex justify-between items-center mix-blend-difference">
+        <div 
+          className="text-xl font-bold tracking-widest uppercase cursor-pointer group flex items-center gap-2"
+          onMouseEnter={() => setCursorType('hover')}
+          onMouseLeave={() => setCursorType('default')}
+        >
+          <div className="w-2 h-2 bg-white rounded-full group-hover:scale-150 group-hover:bg-[#ff3c00] transition-all" />
+          Sensei_01
+        </div>
+        <div className="flex items-center gap-12 text-[10px] font-bold tracking-[0.4em] uppercase hidden lg:flex">
+          {['Studio', 'Archive', 'Laboratory'].map((item) => (
+            <a key={item} href="#" className="relative overflow-hidden group py-1">
+              <span className="block transition-transform duration-500 group-hover:-translate-y-full">{item}</span>
+              <span className="absolute top-full left-0 block transition-transform duration-500 group-hover:-translate-y-full italic text-[#ff3c00]">{item}</span>
+            </a>
+          ))}
+        </div>
+        <button 
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          onMouseEnter={() => setCursorType('hover')}
+          onMouseLeave={() => setCursorType('default')}
+          className="w-10 h-10 flex flex-col justify-center gap-1.5 group relative"
+        >
+          <div className={`h-[1px] bg-white transition-all duration-700 ${isMenuOpen ? 'rotate-45 translate-y-[7px] w-full' : 'w-full'}`} />
+          <div className={`h-[1px] bg-white transition-all duration-700 ${isMenuOpen ? 'opacity-0' : 'w-1/2 align-right ml-auto'}`} />
+          <div className={`h-[1px] bg-white transition-all duration-700 ${isMenuOpen ? '-rotate-45 -translate-y-[7px] w-full' : 'w-full'}`} />
+        </button>
+      </nav>
+
+      {/* Fullscreen Menu */}
+      <div className={`fixed inset-0 z-[90] bg-[#0c0c0c] text-white transition-transform duration-1000 ease-expo flex items-center justify-center ${isMenuOpen ? 'translate-y-0' : '-translate-y-full'}`}>
+        <div className="absolute inset-0 opacity-10 flex flex-col justify-center items-center pointer-events-none">
+          <div className="text-[30vw] font-black leading-none tracking-tighter select-none">MENU</div>
+        </div>
+        <div className="flex flex-col gap-2 text-center relative z-10">
+          {['Home', 'Projects', 'Strategy', 'Contact'].map((item, i) => (
+            <div key={i} className="overflow-hidden group">
+               <h2 
+                  className={`text-7xl md:text-[10vw] font-bold tracking-tighter transition-all duration-700 cursor-pointer hover:text-[#ff3c00] hover:italic ${isMenuOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}`}
+                  style={{ transitionDelay: `${i * 100}ms` }}
+                  onMouseEnter={() => setCursorType('hover')}
+                  onMouseLeave={() => setCursorType('default')}
+               >
+                 {item}
+               </h2>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Hero Section */}
+      <section className="relative h-screen flex flex-col justify-center items-center px-6 overflow-hidden">
+        {/* Floating Ambient Element */}
+        <div 
+          className="absolute w-[60vw] h-[60vw] bg-[#ff3c00] rounded-full blur-[200px] opacity-[0.07] pointer-events-none"
+          style={{ 
+            transform: `translate(${mousePos.x * 0.05}px, ${mousePos.y * 0.05}px)` 
+          }}
+        />
+        
+        <div className="relative z-10 text-center">
+          <div className="overflow-hidden mb-4">
+            <p className="text-[10px] tracking-[0.8em] uppercase opacity-40 animate-reveal flex items-center justify-center gap-4">
+              <span className="w-12 h-[1px] bg-white/20" />
+              Creative Direction & Strategy
+              <span className="w-12 h-[1px] bg-white/20" />
+            </p>
+          </div>
+
+          <h1 className="text-[14vw] md:text-[11vw] font-bold leading-[0.75] tracking-tighter mb-12">
+            <span className="block overflow-hidden py-2">
+              <span className="block animate-reveal [animation-delay:200ms] text-outline hover:text-white transition-colors duration-700">THE BOLD</span>
+            </span>
+            <span className="block italic overflow-hidden py-2">
+              <span className="block animate-reveal [animation-delay:400ms] text-[#ff3c00]">MANIFESTO.</span>
+            </span>
+          </h1>
+          
+          <div className="flex justify-center animate-reveal [animation-delay:600ms]">
+            <div 
+              ref={magneticRef}
+              className="group relative px-12 py-6 border border-white/10 rounded-full overflow-hidden transition-all hover:border-[#ff3c00] cursor-pointer"
+              onMouseEnter={() => setCursorType('hover')}
+              onMouseLeave={() => setCursorType('default')}
+              style={{ transform: `translate(${magneticPos.x}px, ${magneticPos.y}px)` }}
+            >
+              <div className="absolute inset-0 bg-[#ff3c00] translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-expo" />
+              <span className="relative z-10 text-[10px] font-black tracking-[0.3em] uppercase flex items-center gap-3">
+                Initiate Protocol <ArrowRight size={14} className="group-hover:translate-x-2 transition-transform duration-500" />
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="absolute bottom-12 left-12 flex flex-col gap-2">
+          <div className="flex items-center gap-4 text-[9px] tracking-widest font-bold opacity-30">
+            <div className="w-8 h-[1px] bg-white" />
+            BASED IN TOKYO / GLOBAL
+          </div>
+        </div>
+        
+        <div className="absolute bottom-12 right-12">
+          <div className="relative w-12 h-12 flex items-center justify-center group cursor-pointer" onMouseEnter={() => setCursorType('hover')} onMouseLeave={() => setCursorType('default')}>
+            <div className="absolute inset-0 border border-white/10 rounded-full animate-spin-slow group-hover:border-[#ff3c00]" />
+            <ArrowDown size={16} className="opacity-40 group-hover:text-[#ff3c00] transition-colors" />
+          </div>
+        </div>
+      </section>
+
+      {/* Narrative Section - Split Layout */}
+      <section 
+        id="narrative" 
+        className={`reveal-section min-h-screen grid lg:grid-cols-12 gap-10 px-8 md:px-24 py-40 items-center transition-all duration-1000 ${revealed['narrative'] ? 'opacity-100' : 'opacity-0 translate-y-20'}`}
+      >
+        <div className="lg:col-span-7">
+          <div className="text-[10px] font-black tracking-[0.5em] text-[#ff3c00] mb-8 uppercase">The Philosophy</div>
+          <h2 className="text-5xl md:text-8xl font-medium leading-[0.9] tracking-tighter mb-12">
+            Architecture <br /> of <span className="italic">Emotion.</span>
+          </h2>
+          <p className="text-xl md:text-2xl opacity-60 leading-relaxed max-w-2xl font-light">
+            We don’t build websites; we build digital ecosystems that pulse with intent. Every interaction is a conversation between logic and feeling.
+          </p>
+        </div>
+        
+        <div className="lg:col-span-5 flex flex-col gap-12">
+          <div className="p-12 border border-white/5 bg-white/[0.02] backdrop-blur-2xl rounded-3xl relative overflow-hidden group">
+            <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#ff3c00] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+            <div className="text-sm tracking-[0.2em] uppercase opacity-40 mb-6">Capabilities</div>
+            <ul className="flex flex-col gap-4 font-bold text-lg md:text-xl">
+              <li className="flex items-center gap-4 hover:translate-x-4 transition-transform"><Plus size={14} className="text-[#ff3c00]" /> Visual Identity</li>
+              <li className="flex items-center gap-4 hover:translate-x-4 transition-transform"><Plus size={14} className="text-[#ff3c00]" /> Interaction Design</li>
+              <li className="flex items-center gap-4 hover:translate-x-4 transition-transform"><Plus size={14} className="text-[#ff3c00]" /> Neural Engineering</li>
+              <li className="flex items-center gap-4 hover:translate-x-4 transition-transform"><Plus size={14} className="text-[#ff3c00]" /> Spatial Computing</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Project - 3D Tilt Card */}
+      <section 
+        id="project"
+        className="reveal-section relative py-40 px-6 flex flex-col items-center"
+      >
+        <div className="text-center mb-20 overflow-hidden">
+          <h3 className="text-[8vw] font-bold tracking-tighter leading-none opacity-5 animate-pulse">SELECTED WORK</h3>
+        </div>
+
+        <div 
+          className="relative w-full max-w-6xl aspect-[16/10] bg-[#141414] overflow-hidden rounded-xl cursor-none group perspective-1000 shadow-2xl transition-all duration-700"
+          onMouseEnter={() => setCursorType('view')}
+          onMouseLeave={() => setCursorType('default')}
+          style={{ transform: `rotateX(${(mousePos.y - window.innerHeight/2) * -0.01}deg) rotateY(${(mousePos.x - window.innerWidth/2) * 0.01}deg)` }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10 opacity-60" />
+          
+          {/* Animated Image Overlay Effect */}
+          <div className="absolute inset-0 scale-110 group-hover:scale-100 transition-transform duration-1000 ease-out bg-[url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80')] bg-cover bg-center grayscale group-hover:grayscale-0" />
+          
+          <div className="absolute bottom-16 left-16 z-20 transition-all duration-700 group-hover:translate-x-4">
+            <span className="text-[10px] font-black tracking-[0.5em] text-[#ff3c00] mb-4 block uppercase">Project 01 / Archive</span>
+            <h4 className="text-6xl md:text-8xl font-bold tracking-tighter mb-6">NEURAL GLITCH</h4>
+            <div className="flex items-center gap-6">
+              <button className="flex items-center gap-2 text-xs font-bold tracking-widest uppercase border-b border-white/20 pb-2 hover:border-[#ff3c00] transition-colors">
+                View Case Study <ArrowUpRight size={14} />
+              </button>
+            </div>
+          </div>
+
+          {/* Glitch Overlay Elements */}
+          <div className="absolute top-10 right-10 z-20 flex flex-col gap-2">
+            <div className="w-12 h-[1px] bg-white/20 group-hover:bg-[#ff3c00] transition-colors" />
+            <div className="w-8 h-[1px] bg-white/20 group-hover:bg-[#ff3c00] transition-colors ml-auto" />
+          </div>
+        </div>
+      </section>
+
+      {/* Interactive Marquee with Counter-Scroll */}
+      <section className="py-24 border-y border-white/5 relative overflow-hidden group">
+        <div 
+          className="flex whitespace-nowrap text-[12vw] font-black tracking-tighter uppercase leading-none opacity-[0.03] transition-transform duration-100"
+          style={{ transform: `translateX(${scrollY * 0.2}px)` }}
+        >
+          SYNERGY • PRECISION • EVOLUTION • SYNERGY • PRECISION • EVOLUTION • 
+        </div>
+        <div className="absolute inset-0 flex items-center justify-center">
+           <p className="text-[10px] tracking-[1em] font-black text-[#ff3c00] uppercase animate-pulse">Continuous Experimentation</p>
+        </div>
+      </section>
+
+      {/* Big Contact Reveal */}
+      <section id="contact" className="reveal-section min-h-screen flex items-center justify-center px-8">
+        <div className="text-center">
+          <div className="mb-12 overflow-hidden">
+            <h5 className="text-sm font-bold tracking-[0.4em] uppercase opacity-40 animate-reveal">Have a challenge?</h5>
+          </div>
+          <a 
+            href="mailto:hello@sensei.digital" 
+            className="text-[12vw] font-bold tracking-tighter leading-none hover:italic transition-all duration-700 hover:text-[#ff3c00] block"
+            onMouseEnter={() => setCursorType('hover')}
+            onMouseLeave={() => setCursorType('default')}
+          >
+            LET'S TALK
+          </a>
+          <div className="mt-20 flex flex-wrap justify-center gap-12 text-[10px] font-black tracking-[0.5em] uppercase opacity-30">
+            <a href="#" className="hover:opacity-100 hover:text-[#ff3c00] transition-all underline underline-offset-8">Instagram</a>
+            <a href="#" className="hover:opacity-100 hover:text-[#ff3c00] transition-all underline underline-offset-8">Behance</a>
+            <a href="#" className="hover:opacity-100 hover:text-[#ff3c00] transition-all underline underline-offset-8">Twitter (X)</a>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer - Elevated Branding */}
+      <footer className="bg-white text-[#0c0c0c] px-12 pt-32 pb-12 rounded-t-[80px] md:rounded-t-[140px]">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="flex flex-col md:flex-row justify-between items-end gap-20 mb-32">
+            <div>
+              <div className="flex items-center gap-3 mb-8">
+                <div className="w-10 h-10 bg-[#0c0c0c] rounded-lg flex items-center justify-center">
+                   <div className="w-4 h-4 bg-white rotate-45" />
+                </div>
+                <span className="text-2xl font-black tracking-tighter uppercase italic">SENSEI®</span>
+              </div>
+              <h6 className="text-4xl md:text-6xl font-medium tracking-tighter max-w-xl leading-[1.1]">
+                Designing for the <span className="text-[#ff3c00]">Post-Digital</span> era.
+              </h6>
+            </div>
+            
+            <div className="flex gap-16 md:gap-32">
+              <div className="flex flex-col gap-6">
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">Office</p>
+                <p className="text-sm font-bold">1-21-1 Shibuya,<br />Tokyo 150-0002</p>
+              </div>
+              <div className="flex flex-col gap-6">
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">Say Hello</p>
+                <p className="text-sm font-bold">studio@sensei.design<br />+81 03 5555 0101</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col md:flex-row justify-between items-center py-12 border-t border-black/5 text-[9px] font-black tracking-[0.4em] uppercase opacity-40">
+            <div className="flex gap-12 mb-8 md:mb-0">
+               <span>Privacy</span>
+               <span>Terms</span>
+               <span>Cookies</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Globe size={12} /> SYNCED: {new Date().toLocaleTimeString()} JST
+            </div>
+            <span>©2025 ALL RIGHTS RESERVED</span>
+          </div>
+        </div>
+      </footer>
+
+      {/* Global CSS Inject */}
+      <style>{`
+        @keyframes reveal {
+          from { transform: translateY(110%); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-reveal {
+          animation: reveal 1.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+        }
+        .animate-spin-slow {
+          animation: spin 12s linear infinite;
+        }
+        .perspective-1000 {
+          perspective: 1000px;
+        }
+        .text-outline {
+          -webkit-text-stroke: 1px rgba(255, 255, 255, 0.2);
+          color: transparent;
+        }
+        .ease-expo {
+          transition-timing-function: cubic-bezier(0.87, 0, 0.13, 1);
+        }
+        ::-webkit-scrollbar {
+          width: 0px;
+        }
+        body {
+          scrollbar-width: none;
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default App;
