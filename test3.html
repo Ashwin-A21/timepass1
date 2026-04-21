@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ETHEREAL ECHOES | Experimental Experience</title>
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Inter:wght@300;400&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg: #080808;
+            --accent: #ffffff;
+            --secondary: #444444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg);
+            color: var(--accent);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            scrollbar-width: none;
+        }
+
+        body::-webkit-scrollbar { display: none; }
+
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* --- MAGNETIC CURSOR --- */
+        #cursor-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        .cursor-dot {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10000;
+        }
+
+        .cursor-ring {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s ease, height 0.3s ease, border 0.3s ease;
+        }
+
+        /* --- UI LAYER --- */
+        .ui-overlay {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+        }
+
+        .scroll-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 2px;
+            background: var(--accent);
+            width: 0%;
+            z-index: 1000;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 40px 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .logo {
+            font-family: 'Syncopate', sans-serif;
+            font-weight: 700;
+            font-size: 0.8rem;
+            letter-spacing: 0.5em;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 40px;
+        }
+
+        .nav-link {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 0.6rem;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            cursor: pointer;
+            position: relative;
+            opacity: 0.5;
+            transition: opacity 0.3s ease;
+            padding: 10px;
+        }
+
+        .nav-link:hover { opacity: 1; }
+
+        /* --- HERO --- */
+        .hero {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            perspective: 1500px;
+        }
+
+        .title-wrapper {
+            position: relative;
+            transform-style: preserve-3d;
+        }
+
+        .glitch-text {
+            font-family: 'Syncopate', sans-serif;
+            font-size: clamp(4rem, 15vw, 12rem);
+            font-weight: 700;
+            text-transform: uppercase;
+            line-height: 0.8;
+            color: transparent;
+            -webkit-text-stroke: 1px rgba(255, 255, 255, 0.4);
+            transition: -webkit-text-stroke 0.5s ease;
+        }
+
+        .glitch-text:hover {
+            -webkit-text-stroke: 1px rgba(255, 255, 255, 1);
+        }
+
+        .sub-text {
+            margin-top: 20px;
+            font-size: 0.7rem;
+            letter-spacing: 1em;
+            text-transform: uppercase;
+            opacity: 0.4;
+        }
+
+        /* --- CONTENT SECTIONS --- */
+        .section {
+            padding: 20vh 10%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .project-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 100px;
+            align-items: center;
+        }
+
+        .project-card {
+            position: relative;
+            height: 60vh;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            border-radius: 2px;
+        }
+
+        .project-num {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 8rem;
+            opacity: 0.05;
+            position: absolute;
+        }
+
+        .project-desc {
+            max-width: 400px;
+        }
+
+        .project-desc h2 {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            letter-spacing: 0.2em;
+        }
+
+        .project-desc p {
+            font-size: 0.9rem;
+            line-height: 2;
+            color: #888;
+        }
+
+        .noise {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 5;
+            background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyBAMAAADsEZWCAAAAGFBMVEUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAt66XzAAAACHRSTlMA78fV+L9vS89T4gAAAABJREFUKM9jYBgFo2AUjIJRMApGAb0BAAJoAAHla8v0AAAAAElFTkSuQmCC');
+            opacity: 0.04;
+        }
+
+        @media (max-width: 900px) {
+            .project-grid { grid-template-columns: 1fr; gap: 50px; }
+            .nav-links { display: none; }
+        }
+    </style>
+</head>
+<body style="opacity: 0;">
+
+    <div class="scroll-progress" id="progress-bar"></div>
+    <div id="cursor-wrapper">
+        <div class="cursor-dot" id="cursor-dot"></div>
+        <div class="cursor-ring" id="cursor-ring"></div>
+    </div>
+
+    <div class="noise"></div>
+    <div id="canvas-container"></div>
+
+    <div class="ui-overlay">
+        <nav>
+            <div class="logo">E.ECHOES</div>
+            <div class="nav-links">
+                <div class="nav-link magnetic">Philosophy</div>
+                <div class="nav-link magnetic">Artifacts</div>
+                <div class="nav-link magnetic">Contact</div>
+            </div>
+        </nav>
+
+        <section class="hero">
+            <div class="title-wrapper" id="parallax-container">
+                <h1 class="glitch-text" id="hero-title">AESTHETIC</h1>
+                <p class="sub-text">Digital Fluidity & Motion</p>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="project-grid">
+                <div class="project-card magnetic">
+                    <span class="project-num">01</span>
+                </div>
+                <div class="project-desc">
+                    <h2>KINETIC VOID</h2>
+                    <p>An exploration into the silence of digital space. Where every pixel is governed by physics but guided by intent.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="project-grid" style="direction: rtl;">
+                <div class="project-card magnetic">
+                    <span class="project-num">02</span>
+                </div>
+                <div class="project-desc" style="direction: ltr;">
+                    <h2>NEURAL FLUX</h2>
+                    <p>Synthesizing human behavior with algorithmic generation. A reactive canvas that learns the weight of your gaze.</p>
+                </div>
+            </div>
+        </section>
+
+        <footer style="padding: 100px; text-align: center; border-top: 1px solid rgba(255,255,255,0.05);">
+            <p style="font-size: 0.6rem; letter-spacing: 0.5em; opacity: 0.2;">MADE BY SENSEI • 2026</p>
+        </footer>
+    </div>
+
+    <!-- SHADERS -->
+    <script id="vertexShader" type="x-shader/x-vertex">
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    </script>
+
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        uniform float uTime;
+        uniform vec2 uMouse;
+        uniform vec2 uResolution;
+        varying vec2 vUv;
+
+        vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
+        float snoise(vec2 v){
+          const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
+          vec2 i = floor(v + dot(v, C.yy));
+          vec2 x0 = v - i + dot(i, C.xx);
+          vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+          vec4 x12 = x0.xyxy + C.xxzz;
+          x12.xy -= i1;
+          i = mod(i, 289.0);
+          vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0)) + i.x + vec3(0.0, i1.x, 1.0));
+          vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
+          m = m*m*m*m;
+          vec3 x = 2.0 * fract(p * C.www) - 1.0;
+          vec3 h = abs(x) - 0.5;
+          vec3 ox = floor(x + 0.5);
+          vec3 a0 = x - ox;
+          m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
+          vec3 g;
+          g.x = a0.x * x0.x + h.x * x0.y;
+          g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+          return 130.0 * dot(m, g);
+        }
+
+        void main() {
+            vec2 st = gl_FragCoord.xy / uResolution.xy;
+            float ratio = uResolution.x / uResolution.y;
+            vec2 mouse = uMouse;
+            
+            // Adjust for aspect ratio
+            vec2 p = st;
+            p.x *= ratio;
+            vec2 m = mouse;
+            m.x *= ratio;
+
+            float n = snoise(p * 2.0 + uTime * 0.1);
+            float n2 = snoise(p * 4.0 - uTime * 0.05);
+            
+            float dist = distance(p, m);
+            float mouseStrength = 1.0 - smoothstep(0.0, 0.8, dist);
+            
+            vec3 color1 = vec3(0.02, 0.02, 0.03); 
+            vec3 color2 = vec3(0.07, 0.07, 0.1); 
+            
+            float finalNoise = mix(n, n2, 0.5) + mouseStrength * 0.4;
+            vec3 finalColor = mix(color1, color2, finalNoise * 0.5 + 0.5);
+            
+            gl_FragColor = vec4(finalColor, 1.0);
+        }
+    </script>
+
+    <script>
+        /**
+         * SENSEI CORE - HIGH PERFORMANCE INTERACTIVE ENGINE
+         */
+        let scene, camera, renderer, material;
+        const clock = new THREE.Clock();
+        const mouse = { x: 0.5, y: 0.5, targetX: 0.5, targetY: 0.5 };
+        
+        // Custom Cursor Logic
+        const cursorDot = document.getElementById('cursor-dot');
+        const cursorRing = document.getElementById('cursor-ring');
+        
+        const pos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+        const dotPos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+        const ringPos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+
+        const setDotX = gsap.quickSetter(cursorDot, "x", "px");
+        const setDotY = gsap.quickSetter(cursorDot, "y", "px");
+        const setRingX = gsap.quickSetter(cursorRing, "x", "px");
+        const setRingY = gsap.quickSetter(cursorRing, "y", "px");
+
+        function initThree() {
+            scene = new THREE.Scene();
+            camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            material = new THREE.ShaderMaterial({
+                uniforms: {
+                    uTime: { value: 0 },
+                    uMouse: { value: new THREE.Vector2(0.5, 0.5) },
+                    uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
+                },
+                vertexShader: document.getElementById('vertexShader').textContent,
+                fragmentShader: document.getElementById('fragmentShader').textContent
+            });
+
+            scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material));
+        }
+
+        function setupEvents() {
+            window.addEventListener('mousemove', e => {
+                pos.x = e.clientX;
+                pos.y = e.clientY;
+                
+                mouse.targetX = e.clientX / window.innerWidth;
+                mouse.targetY = 1 - (e.clientY / window.innerHeight);
+            });
+
+            window.addEventListener('resize', () => {
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                material.uniforms.uResolution.value.set(window.innerWidth, window.innerHeight);
+            });
+
+            // Magnetic Interaction Logic
+            document.querySelectorAll('.magnetic').forEach(el => {
+                el.addEventListener('mousemove', function(e) {
+                    const rect = this.getBoundingClientRect();
+                    const centerX = rect.left + rect.width / 2;
+                    const centerY = rect.top + rect.height / 2;
+                    
+                    const deltaX = (e.clientX - centerX) * 0.3;
+                    const deltaY = (e.clientY - centerY) * 0.3;
+
+                    gsap.to(this, {
+                        x: deltaX,
+                        y: deltaY,
+                        duration: 0.4,
+                        ease: "power2.out"
+                    });
+
+                    gsap.to(cursorRing, {
+                        width: 80, height: 80,
+                        borderColor: "rgba(255,255,255,1)",
+                        duration: 0.3
+                    });
+                });
+
+                el.addEventListener('mouseleave', function() {
+                    gsap.to(this, { x: 0, y: 0, duration: 0.6, ease: "elastic.out(1, 0.3)" });
+                    gsap.to(cursorRing, {
+                        width: 40, height: 40,
+                        borderColor: "rgba(255,255,255,0.3)",
+                        duration: 0.3
+                    });
+                });
+            });
+        }
+
+        function initGSAP() {
+            gsap.registerPlugin(ScrollTrigger);
+
+            // Entry Animation
+            gsap.to('body', { opacity: 1, duration: 1.5, ease: "power2.inOut" });
+            
+            gsap.from('#hero-title', {
+                y: 100, opacity: 0, duration: 2, ease: "expo.out", delay: 0.5
+            });
+
+            // Scroll Progress
+            gsap.to('#progress-bar', {
+                width: "100%",
+                scrollTrigger: { scrub: 0.5 }
+            });
+
+            // Hero Parallax Tilt
+            window.addEventListener('mousemove', (e) => {
+                const xPct = (e.clientX / window.innerWidth - 0.5);
+                const yPct = (e.clientY / window.innerHeight - 0.5);
+                
+                gsap.to('#parallax-container', {
+                    rotationY: xPct * 40,
+                    rotationX: -yPct * 40,
+                    x: xPct * 50,
+                    y: yPct * 50,
+                    duration: 1.2,
+                    ease: "power2.out"
+                });
+            });
+        }
+
+        function animate() {
+            // Smooth Cursor Following
+            const dt = 1.0 - Math.pow(0.001, 1/60); // frame independent lerp
+            
+            dotPos.x += (pos.x - dotPos.x) * 0.25;
+            dotPos.y += (pos.y - dotPos.y) * 0.25;
+            
+            ringPos.x += (pos.x - ringPos.x) * 0.15;
+            ringPos.y += (pos.y - ringPos.y) * 0.15;
+
+            setDotX(dotPos.x);
+            setDotY(dotPos.y);
+            setRingX(ringPos.x);
+            setRingY(ringPos.y);
+
+            // Shader Updates
+            mouse.x += (mouse.targetX - mouse.x) * 0.05;
+            mouse.y += (mouse.targetY - mouse.y) * 0.05;
+            
+            material.uniforms.uTime.value = clock.getElapsedTime();
+            material.uniforms.uMouse.value.set(mouse.x, mouse.y);
+            
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+
+        window.onload = () => {
+            initThree();
+            setupEvents();
+            initGSAP();
+            animate();
+        };
+    </script>
+</body>
+</html>
